@@ -14,14 +14,14 @@ import { AuthGuard } from "../components/AuthGuard";
 export default function LoginPage() {
   const router = useRouter();
   const loginMutation = apiHooks.auth.useLogin();
-  // const { user, isLoading } = useRequireAuth({ mode: "guest" });
+  const { user, isLoading } = useRequireAuth({ mode: "guest" });
   const handleSubmit = async (data: LoginInput) => {
     await loginMutation.mutateAsync(data);
   };
 
-  // if (isLoading) {
-  //   return <Loading />;
-  // }
+  if (isLoading) {
+    return <Loading />;
+  }
   // if (user) {
   //   return null;
   // }
