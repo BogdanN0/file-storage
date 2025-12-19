@@ -125,6 +125,7 @@ export const FileCard: React.FC<FileCardProps> = ({
   };
 
   const roleBadge = getRoleBadge(file.userRole, file.isOwner);
+  console.log({ file });
 
   return (
     <>

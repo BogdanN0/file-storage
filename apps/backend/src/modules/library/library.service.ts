@@ -478,6 +478,7 @@ export class LibraryService {
     const file = await this.prisma.file.findUnique({
       where: { id },
     });
+    console.log({ dto, file });
 
     if (!file) {
       throw new NotFoundException("File not found");
@@ -500,7 +501,7 @@ export class LibraryService {
 
     const updated = await this.prisma.file.update({
       where: { id },
-      data: dto,
+      data: { ...dto, publicUrl: dto.isPublic ? "public/" + nanoid() : null },
     });
 
     return this.serializeFile(updated);
