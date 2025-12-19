@@ -1,0 +1,22 @@
+{
+  "name": "monorepo-project",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:frontend": "yarn workspace @monorepo/frontend dev",
+    "dev:backend": "yarn workspace @monorepo/backend start:dev",
+    "build:frontend": "yarn workspace @monorepo/frontend build",
+    "build:backend": "yarn workspace @monorepo/backend build",
+    "prisma:generate": "yarn workspace @monorepo/backend prisma generate",
+    "prisma:migrate": "yarn workspace @monorepo/backend prisma migrate dev",
+    "prisma:seed": "yarn workspace @monorepo/backend prisma db seed",
+    "prisma:studio": "yarn workspace @monorepo/backend prisma studio",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build --no-cache"
+  }
+}

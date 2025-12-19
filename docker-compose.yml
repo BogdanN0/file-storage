@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: monorepo-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: monorepo_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./apps/backend/Dockerfile
+    container_name: monorepo-backend
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/monorepo_db?schema=public"
+      UPLOAD_DIR: "/app/uploads"
+      NODE_ENV: "development"
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Mount source code for hot-reload
+      - ./apps/backend/src:/app/apps/backend/src:delegated
+      - ./apps/backend/prisma:/app/apps/backend/prisma:delegated
+      # Shared package for hot-reload
+      - ./packages/shared/src:/app/packages/shared/src:delegated
+      # Named volumes for node_modules (persist dependencies between restarts)
+      - backend_root_node_modules:/app/node_modules
+      - backend_app_node_modules:/app/apps/backend/node_modules
+      # Volume for uploaded files (persist between restarts)
+      - backend_uploads:/app/uploads
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./apps/frontend/Dockerfile
+    container_name: monorepo-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:3001"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      # Mount source code for hot-reload
+      - ./apps/frontend/src:/app/apps/frontend/src:delegated
+      - ./apps/frontend/public:/app/apps/frontend/public:delegated
+      # Shared package for hot-reload
+      - ./packages/shared/src:/app/packages/shared/src:delegated
+      # Named volumes for node_modules
+      - frontend_root_node_modules:/app/node_modules
+      - frontend_app_node_modules:/app/apps/frontend/node_modules
+
+volumes:
+  postgres_data:
+  backend_root_node_modules:
+  backend_app_node_modules:
+  backend_uploads: # Volume for files
+  frontend_root_node_modules:
+  frontend_app_node_modules:

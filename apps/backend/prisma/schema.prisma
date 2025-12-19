@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" 
+  url      = env("DATABASE_URL")
+}
+
+
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String   // hashed password (bcrypt/argon2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // JWT tokens
+  refreshTokens RefreshToken[]
+
+  // File system relations
+  ownedFolders Folder[] @relation("FolderOwner")
+  ownedFiles   File[]   @relation("FileOwner")
+
+  // Access permissions
+  folderPermissions FolderPermission[]
+  filePermissions   FilePermission[]
+
+  // Activity
+  sessions Session[]
+
+  @@index([email])
+}
+
+// Optional table for tracking active sessions
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent    String?
+  ipAddress    String?
+  lastActivity DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  // Relation with refresh tokens
+  refreshTokens RefreshToken[]
+
+  @@index([userId])
+}
+
+// Table for storing refresh tokens (for JWT)
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  isRevoked Boolean  @default(false) // for token revocation
+
+  // Relation with session
+  sessionId String?
+  session   Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([sessionId])
+}
+
+
+
+model Folder {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  order Int @default(0)  
+
+  isPublic  Boolean @default(false)
+  publicUrl String? @unique  
+  
+  // Folder owner
+  ownerId String
+  owner   User   @relation("FolderOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Folder hierarchy (self-relation)
+  parentId String?
+  parent   Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[] @relation("FolderHierarchy")
+
+  // Files in this folder
+  files File[]
+
+  // Folder access permissions
+  permissions FolderPermission[]
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([parentId])
+  @@index([name]) 
+}
+
+// Folder access permissions
+model FolderPermission {
+  id       String           @id @default(uuid())
+  folderId String
+  folder   Folder           @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     PermissionRole   @default(VIEWER)
+  grantedAt DateTime        @default(now())
+
+  @@unique([folderId, userId]) 
+  @@index([userId])
+  @@index([folderId])
+}
+
+
+model File {
+  id           String   @id @default(uuid())
+  name         String
+  originalName String  
+  description  String?
+  
+  // File owner
+  ownerId String
+  owner   User   @relation("FileOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Folder (can be null if file is not in a folder)
+  folderId String?
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  // File information
+  filePath  String  @unique // path to the file on the server
+  mimeType  String  // file type (image/png, application/pdf, etc.)
+  size      BigInt  // size in bytes
+  extension String  // file extension
+
+  // Public access
+  isPublic  Boolean @default(false)
+  publicUrl String? @unique // URL for public access (if isPublic = true)
+
+  // Display order (for sorting)
+  order Int @default(0)
+
+  // File access permissions
+  permissions FilePermission[]
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([folderId])
+  @@index([isPublic])
+  @@index([order])
+  @@index([name]) 
+  @@index([originalName])
+}
+
+// File access permissions
+model FilePermission {
+  id       String         @id @default(uuid())
+  fileId   String
+  file     File           @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     PermissionRole @default(VIEWER)
+  grantedAt DateTime      @default(now())
+
+  @@unique([fileId, userId]) 
+  @@index([userId])
+  @@index([fileId])
+}
+
+enum PermissionRole {
+  OWNER   // full control (owner)
+  EDITOR  // can edit, delete
+  VIEWER  // read-only
+}
