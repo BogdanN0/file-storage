@@ -161,3 +161,19 @@ docker-compose logs -f backend  # Backend logs
 - Hot-reload works automatically when you change files
 
 ---
+
+## ✅ Implementation Checklist
+
+- Simple authentication ✅
+- Simple UI ✅
+- File upload functionality ✅
+- Support for a hierarchical folder system (nested folders and files) ✅
+- File and folder management: clone, remove, rename, and edit (optional) ✅
+- Search files and folders by name (optional) ✅
+- Public or private file visibility (optional) ✅
+- File viewing accessibility management (public/private) (optional) ✅
+- Ability to grant users access via email with specific permissions (optional) ✅
+- Viewing shared files or folders through a public link (optional) ✅
+- Background jobs for compressing videos and images (optional) ❌
+- Unit tests (optional) ❌
+- Reordering of files and folders (optional) ❌
